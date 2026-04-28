@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Effectif Standardization Pipeline — France CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface2: #f0f1f4;
+    --border: #dde0e8;
+    --border2: #c8ccd8;
+    --text: #1a1d2e;
+    --text-muted: #555c7a;
+    --text-dim: #9aa0b8;
+    --accent: #3a6af4;
+    --accent2: #6c4ff0;
+    --green: #0ea87a;
+    --orange: #e8820a;
+    --red: #e03a3a;
+    --yellow: #c9960a;
+    --stage1: #3a6af4;
+    --stage2: #0ea87a;
+    --stage3: #7c5cef;
+    --stage4: #2aabcc;
+    --stage5: #d9541e;
+    --conf5: #0ea87a;
+    --conf4: #7c5cef;
+    --conf3: #2aabcc;
+    --conf2: #c9960a;
+    --conf1: #e03a3a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG Grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 56px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .header-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-tag::before {
+    content: '';
+    display: inline-block;
+    width: 18px;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+
+  h1 em {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+
+  .header-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 14px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .header-meta span { display: flex; align-items: center; gap: 6px; }
+  .header-meta span::before { content: '//'; color: var(--text-dim); }
+
+  /* Intake block */
+  .intake-block {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    animation: fadeUp 0.5s ease 0.1s both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .intake-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .intake-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  .intake-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .field-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text-muted);
+  }
+
+  .field-chip.key { border-color: var(--accent); color: var(--accent); }
+
+  /* Connector arrows between sections */
+  .connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    position: relative;
+  }
+
+  .connector-line {
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--border2), var(--border2));
+    position: relative;
+  }
+
+  .connector-line::after {
+    content: '▼';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: var(--border2);
+  }
+
+  /* Waterfall stages */
+  .waterfall {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .stage-wrapper {
+    position: relative;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .stage-wrapper:nth-child(1) { animation-delay: 0.15s; }
+  .stage-wrapper:nth-child(2) { animation-delay: 0.22s; }
+  .stage-wrapper:nth-child(3) { animation-delay: 0.29s; }
+  .stage-wrapper:nth-child(4) { animation-delay: 0.36s; }
+  .stage-wrapper:nth-child(5) { animation-delay: 0.43s; }
+  .stage-wrapper:nth-child(6) { animation-delay: 0.50s; }
+
+  .stage-row {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 12px;
+    align-items: start;
+    margin-bottom: 0;
+  }
+
+  .stage-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: default;
+  }
+
+  .stage-card:hover {
+    border-color: var(--stage-color);
+    box-shadow: 0 0 0 1px var(--stage-color), 0 8px 40px rgba(0,0,0,0.4);
+  }
+
+  .stage-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--stage-color);
+  }
+
+  .stage-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .stage-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--stage-color) 15%, transparent);
+    color: var(--stage-color);
+    border: 1px solid color-mix(in srgb, var(--stage-color) 30%, transparent);
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+
+  .stage-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .stage-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .stage-section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .source-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .source-item {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .source-item::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--stage-color);
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .rule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .rule-item {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  /* Output sidebar */
+  .output-card {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    position: sticky;
+    top: 20px;
+    transition: all 0.2s;
+  }
+
+  .output-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .conf-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--conf-color) 15%, transparent);
+    color: var(--conf-color);
+    border: 1px solid color-mix(in srgb, var(--conf-color) 30%, transparent);
+    margin-bottom: 10px;
+  }
+
+  .conf-dot {
+    display: flex;
+    gap: 3px;
+  }
+
+  .conf-dot span {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: var(--conf-color);
+  }
+
+  .conf-dot span.empty {
+    background: var(--border2);
+  }
+
+  .output-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .output-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+  }
+
+  .output-field-key {
+    font-family: 'DM Mono', monospace;
+    color: var(--text-dim);
+  }
+
+  .output-field-val {
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  /* Between stages: no-result path */
+  .between-stages {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 12px;
+    height: 40px;
+    align-items: center;
+  }
+
+  .waterfall-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .waterfall-arrow-line {
+    width: 2px;
+    height: 40px;
+    background: var(--border2);
+    position: relative;
+    margin: 0 auto;
+  }
+
+  .waterfall-arrow-label {
+    position: absolute;
+    left: calc(50% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  /* Publish / no-result / failure */
+  .terminal-section {
+    margin-top: 16px;
+    animation: fadeUp 0.5s ease 0.6s both;
+  }
+
+  .terminal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  .terminal-card {
+    border-radius: 10px;
+    padding: 18px 20px;
+    border: 1px solid var(--border2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .terminal-card.publish {
+    background: color-mix(in srgb, var(--green) 8%, var(--surface));
+    border-color: color-mix(in srgb, var(--green) 30%, transparent);
+  }
+
+  .terminal-card.noresult {
+    background: color-mix(in srgb, var(--yellow) 6%, var(--surface));
+    border-color: color-mix(in srgb, var(--yellow) 25%, transparent);
+  }
+
+  .terminal-card.failure {
+    background: color-mix(in srgb, var(--red) 6%, var(--surface));
+    border-color: color-mix(in srgb, var(--red) 25%, transparent);
+  }
+
+  .terminal-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .terminal-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .terminal-card.publish .terminal-title { color: var(--green); }
+  .terminal-card.noresult .terminal-title { color: var(--yellow); }
+  .terminal-card.failure .terminal-title { color: var(--red); }
+
+  .terminal-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Monitoring */
+  .monitoring-section {
+    margin-top: 40px;
+    animation: fadeUp 0.5s ease 0.7s both;
+  }
+
+  .section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .kpi-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .kpi-indicator {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border2);
+    margin-top: 8px;
+  }
+
+  .kpi-indicator-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  /* Confidence legend */
+  .legend-section {
+    margin-top: 40px;
+    animation: fadeUp 0.5s ease 0.75s both;
+  }
+
+  .legend-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  .legend-score {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 700px) {
+    .stage-row { grid-template-columns: 1fr; }
+    .between-stages { grid-template-columns: 1fr; }
+    .terminal-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .stage-body { grid-template-columns: 1fr; }
+    .output-card { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-tag">Functional Requirements Document · v1</div>
+    <h1>Effectif <em>Standardization</em><br>Pipeline — France CRM</h1>
+    <div class="header-meta">
+      <span>Prepared by Rawa El Argab</span>
+      <span>6-stage waterfall decision engine</span>
+      <span>Entity-level effectif only</span>
+    </div>
+  </div>
+
+  <!-- Intake -->
+  <div class="intake-block">
+    <div class="intake-title">// Common Intake &amp; Normalization — FR001–006</div>
+    <div class="intake-fields">
+      <span class="field-chip key">SIREN__c</span>
+      <span class="field-chip key">Id (Account)</span>
+      <span class="field-chip">Name</span>
+      <span class="field-chip">RecordTypeId</span>
+      <span class="field-chip">Effectif_data__c</span>
+      <span class="field-chip">siret</span>
+      <span class="field-chip">code_commune_etablissement</span>
+      <span class="field-chip">activite_principale_etablissement</span>
+      <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);align-self:center;">→ normalized observation model</span>
+    </div>
+  </div>
+
+  <!-- Waterfall stages -->
+  <div class="waterfall">
+
+    <!-- Stage 1 -->
+    <div class="stage-wrapper">
+      <div class="stage-row">
+        <div class="stage-card" style="--stage-color: var(--stage1)">
+          <div class="stage-header">
+            <span class="stage-num">STAGE 01</span>
+            <span class="stage-name">Exact Structured Sources</span>
+          </div>
+          <div class="stage-body">
+            <div>
+              <div class="stage-section-title">Sources (priority order)</div>
+              <div class="source-list">
+                <span class="source-item">INPI (RNE / comptes annuels)</span>
+                <span class="source-item">Infogreffe (contracted connector)</span>
+                <span class="source-item">Orbis / Moody's (contracted)</span>
+              </div>
+            </div>
+            <div>
+              <div class="stage-section-title">Selection Logic</div>
+              <div class="rule-list">
+                <span class="rule-item">Entity-level values only</span>
+                <span class="rule-item">Winner = highest source rank + recency</span>
+                <span class="rule-item">Conflict → skip, continue waterfall</span>
+                <span class="rule-item">FR-101 → FR-105</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="output-card" style="--conf-color: var(--conf5)">
+          <div class="output-label">// SF Output</div>
+          <div class="conf-badge">
+            <div class="conf-dot">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            Confidence 5
+          </div>
+          <div class="output-row">
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">official_exact</span></div>
+            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">INPI / Infogreffe / Orbis</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="between-stages">
+      <div class="waterfall-arrow">
+        <div class="waterfall-arrow-line"></div>
+        <div class="waterfall-arrow-label">NO RESULT → continue</div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Stage 2 -->
+    <div class="stage-wrapper">
+      <div class="stage-row">
+        <div class="stage-card" style="--stage-color: var(--stage2)">
+          <div class="stage-header">
+            <span class="stage-num">STAGE 02</span>
+            <span class="stage-name">URSSAF Annual Effectifs</span>
+          </div>
+          <div class="stage-body">
+            <div>
+              <div class="stage-section-title">Source &amp; Endpoint</div>
+              <div class="source-list">
+                <span class="source-item">API Entreprise / GIP-MDS</span>
+                <span class="source-item">GET …/gip_mds/unites_legales/{siren}/effectifs_annuels/{year}</span>
+              </div>
+            </div>
+            <div>
+              <div class="stage-section-title">Processing Rules</div>
+              <div class="rule-list">
+                <span class="rule-item">Call year N-1 first</span>
+                <span class="rule-item">Keep only nature = EMA</span>
+                <span class="rule-item">Round to nearest integer</span>
+                <span class="rule-item">FR-201 → FR-204</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="output-card" style="--conf-color: var(--conf5)">
+          <div class="output-label">// SF Output</div>
+          <div class="conf-badge">
+            <div class="conf-dot">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            Confidence 5
+          </div>
+          <div class="output-row">
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">urssaf_annual_ema</span></div>
+            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">API Entreprise / GIP-MDS</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="between-stages">
+      <div class="waterfall-arrow">
+        <div class="waterfall-arrow-line"></div>
+        <div class="waterfall-arrow-label">NO RESULT → continue</div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Stage 3 -->
+    <div class="stage-wrapper">
+      <div class="stage-row">
+        <div class="stage-card" style="--stage-color: var(--stage3)">
+          <div class="stage-header">
+            <span class="stage-num">STAGE 03</span>
+            <span class="stage-name">LLM Extraction — INPI &amp; API Associations</span>
+          </div>
+          <div class="stage-body">
+            <div>
+              <div class="stage-section-title">Sources</div>
+              <div class="source-list">
+                <span class="source-item">INPI comptes annuels PDF (via RNE / API Entreprise Actes et bilans)</span>
+                <span class="source-item">API Associations DJEPVA — DAC documents / financial reports</span>
+              </div>
+            </div>
+            <div>
+              <div class="stage-section-title">Extraction Rules</div>
+              <div class="rule-list">
+                <span class="rule-item">LLM must not invent a number</span>
+                <span class="rule-item">Requires: explicit numeric + entity-level + date + evidence span</span>
+                <span class="rule-item">Latest annual accounts only</span>
+                <span class="rule-item">FR-301 → FR-305</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="output-card" style="--conf-color: var(--conf4)">
+          <div class="output-label">// SF Output</div>
+          <div class="conf-badge">
+            <div class="conf-dot">
+              <span></span><span></span><span></span><span></span><span class="empty"></span>
+            </div>
+            Confidence 4
+          </div>
+          <div class="output-row">
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">llm_document_extraction</span></div>
+            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">INPI / API Associations</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="between-stages">
+      <div class="waterfall-arrow">
+        <div class="waterfall-arrow-line"></div>
+        <div class="waterfall-arrow-label">NO RESULT → continue</div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Stage 4 (was 5) -->
+    <div class="stage-wrapper">
+      <div class="stage-row">
+        <div class="stage-card" style="--stage-color: var(--stage4)">
+          <div class="stage-header">
+            <span class="stage-num">STAGE 04</span>
+            <span class="stage-name">SIRENE + Estimation Formulas</span>
+          </div>
+          <div class="stage-body">
+            <div>
+              <div class="stage-section-title">Formulas (priority)</div>
+              <div class="source-list">
+                <span class="source-item">A — Tranche midpoint (SIRENE tranche_effectif_salarie)</span>
+                <span class="source-item">B — Payroll ÷ avg salary by NAF</span>
+                <span class="source-item">C — Revenue ÷ avg revenue by NAF</span>
+                <span class="source-item">D — Reconcile B &amp; C if deviation within tolerance</span>
+              </div>
+            </div>
+            <div>
+              <div class="stage-section-title">Rules</div>
+              <div class="rule-list">
+                <span class="rule-item">SIRENE tranche first when present</span>
+                <span class="rule-item">Payroll preferred over revenue</span>
+                <span class="rule-item">Benchmarks must be versioned</span>
+                <span class="rule-item">Outlier → reject, log no-result</span>
+                <span class="rule-item">FR-501 → FR-507</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="output-card" style="--conf-color: var(--conf2)">
+          <div class="output-label">// SF Output</div>
+          <div class="conf-badge">
+            <div class="conf-dot">
+              <span></span><span></span><span class="empty"></span><span class="empty"></span><span class="empty"></span>
+            </div>
+            Confidence 2–3
+          </div>
+          <div class="output-row">
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">tranche_midpoint | payroll_formula | combined_formula</span></div>
+            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">SIRENE / Financial formula</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="between-stages">
+      <div class="waterfall-arrow">
+        <div class="waterfall-arrow-line"></div>
+        <div class="waterfall-arrow-label">NO RESULT → continue</div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Stage 5 (was 6) -->
+    <div class="stage-wrapper">
+      <div class="stage-row">
+        <div class="stage-card" style="--stage-color: var(--stage5)">
+          <div class="stage-header">
+            <span class="stage-num">STAGE 05</span>
+            <span class="stage-name">CoreSignal — Final Fallback</span>
+          </div>
+          <div class="stage-body">
+            <div>
+              <div class="stage-section-title">Endpoints</div>
+              <div class="source-list">
+                <span class="source-item">GET …/enrich?website={URL}</span>
+                <span class="source-item">POST …/search/es_dsl</span>
+                <span class="source-item">GET …/collect/{company_id}</span>
+                <span class="source-item">GET …/historical_headcount/collect/{id}</span>
+              </div>
+            </div>
+            <div>
+              <div class="stage-section-title">Rules</div>
+              <div class="rule-list">
+                <span class="rule-item">Match by website first</span>
+                <span class="rule-item">Prefer employees_count over inferred</span>
+                <span class="rule-item">Never overrides stronger prior stage</span>
+                <span class="rule-item">FR-601 → FR-604</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="output-card" style="--conf-color: var(--conf1)">
+          <div class="output-label">// SF Output</div>
+          <div class="conf-badge">
+            <div class="conf-dot">
+              <span></span><span class="empty"></span><span class="empty"></span><span class="empty"></span><span class="empty"></span>
+            </div>
+            Confidence 1
+          </div>
+          <div class="output-row">
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">coresignal_fallback</span></div>
+            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">CoreSignal</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /waterfall -->
+
+  <!-- Terminal outcomes -->
+  <div class="terminal-section">
+    <div style="height:32px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;">
+      <div style="width:2px;height:32px;background:var(--border2);margin:0 auto;position:relative;">
+        <div style="position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--border2);">▼</div>
+      </div>
+    </div>
+    <div class="terminal-grid">
+      <div class="terminal-card publish">
+        <div class="terminal-icon">✓</div>
+        <div class="terminal-title">Published</div>
+        <div class="terminal-desc">First valid entity-level effectif is written to Salesforce. Fields: SIREN, Effectif, Method, Source, Confidence (1–5), Timestamp.</div>
+      </div>
+      <div class="terminal-card noresult">
+        <div class="terminal-icon">○</div>
+        <div class="terminal-title">No Result</div>
+        <div class="terminal-desc">No stage yielded a safe publishable value. Record logged as <code style="font-size:10px;color:inherit">no_result</code> in monitoring. No Salesforce write occurs.</div>
+      </div>
+      <div class="terminal-card failure">
+        <div class="terminal-icon">✕</div>
+        <div class="terminal-title">Technical Failure</div>
+        <div class="terminal-desc">Source or processing error encountered. Event is logged with stage and timestamp. Record queued for rerun.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confidence Legend -->
+  <div class="legend-section">
+    <div class="section-title">Confidence Scale</div>
+    <div class="legend-grid">
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf5)"></span><span class="legend-score" style="color:var(--conf5)">5</span> Exact official / URSSAF EMA</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf4)"></span><span class="legend-score" style="color:var(--conf4)">4</span> LLM document extraction</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf3)"></span><span class="legend-score" style="color:var(--conf3)">3</span> Strong structured estimate</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf2)"></span><span class="legend-score" style="color:var(--conf2)">2</span> SIRENE tranche / range formula</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf1)"></span><span class="legend-score" style="color:var(--conf1)">1</span> CoreSignal fallback</div>
+    </div>
+  </div>
+
+  <!-- Monitoring KPIs -->
+  <div class="monitoring-section">
+    <div class="section-title">Monitoring Layer — KPIs</div>
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-name">Coverage Rate</div><div class="kpi-indicator"><div class="kpi-indicator-fill" style="width:75%;background:var(--green)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-name">Stage Contribution Rate</div><div class="kpi-indicator"><div class="kpi-indicator-fill" style="width:60%"></div></div></div>
+      <div class="kpi-card"><div class="kpi-name">Confidence Mix</div><div class="kpi-indicator"><div class="kpi-indicator-fill" style="width:55%;background:var(--stage3)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-name">No-Result Rate</div><div class="kpi-indicator"><div class="kpi-indicator-fill" style="width:20%;background:var(--yellow)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-name">Source Timeout / Error Rate</div><div class="kpi-indicator"><div class="kpi-indicator-fill" style="width:10%;background:var(--red)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-name">Publish Success Rate</div><div class="kpi-indicator"><div class="kpi-indicator-fill" style="width:82%;background:var(--green)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-name">Estimated → Exact Replacement Rate</div><div class="kpi-indicator"><div class="kpi-indicator-fill" style="width:40%;background:var(--stage2)"></div></div></div>
+      <div class="kpi-card"><div class="kpi-name">Impact by Segment / NAF / Region</div><div class="kpi-indicator"><div class="kpi-indicator-fill" style="width:65%;background:var(--stage3)"></div></div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
