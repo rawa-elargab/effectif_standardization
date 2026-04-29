@@ -469,6 +469,13 @@
     border-color: color-mix(in srgb, var(--red) 25%, transparent);
   }
 
+  .terminal-card.sirenefallback {
+    background: color-mix(in srgb, var(--conf1) 6%, var(--surface));
+    border-color: color-mix(in srgb, var(--conf1) 25%, transparent);
+  }
+
+  .terminal-card.sirenefallback .terminal-title { color: var(--conf1); }
+
   .terminal-icon {
     font-size: 20px;
     margin-bottom: 8px;
@@ -645,9 +652,9 @@
             <div>
               <div class="stage-section-title">Sources (priority order)</div>
               <div class="source-list">
-                <span class="source-item">INPI (RNE / comptes annuels)</span>
+                <span class="source-item">INPI structured financials (internal ES)</span>
                 <span class="source-item">Infogreffe (contracted connector)</span>
-                <span class="source-item">Orbis / Moody's (contracted)</span>
+                <span class="source-item" style="color:var(--text-dim);font-style:italic;">Orbis — manual only, excluded from pipeline</span>
               </div>
             </div>
             <div>
@@ -671,7 +678,7 @@
           </div>
           <div class="output-row">
             <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">official_exact</span></div>
-            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">INPI / Infogreffe / Orbis</span></div>
+            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">INPI / Infogreffe</span></div>
           </div>
         </div>
       </div>
@@ -692,38 +699,44 @@
         <div class="stage-card" style="--stage-color: var(--stage2)">
           <div class="stage-header">
             <span class="stage-num">STAGE 02</span>
-            <span class="stage-name">URSSAF Annual Effectifs</span>
+            <span class="stage-name">URSSAF Open-Data Reconstruction</span>
           </div>
           <div class="stage-body">
             <div>
               <div class="stage-section-title">Source &amp; Endpoint</div>
               <div class="source-list">
-                <span class="source-item">API Entreprise / GIP-MDS</span>
-                <span class="source-item">GET …/gip_mds/unites_legales/{siren}/effectifs_annuels/{year}</span>
+                <span class="source-item">Open Urssaf Explore API v2.1 — bulk CSV export</span>
+                <span class="source-item">GET open.urssaf.fr/api/explore/v2.1/…/exports/csv</span>
+                <span class="source-item">Dataset: effectifs-salaries-et-masse-salariale-du-secteur-prive-par-departement-x-grand-s</span>
+                <span class="source-item">SIRENE (internal ES) — entity enumeration per cohort</span>
               </div>
             </div>
             <div>
               <div class="stage-section-title">Processing Rules</div>
               <div class="rule-list">
-                <span class="rule-item">Call year N-1 first</span>
-                <span class="rule-item">Keep only nature = EMA</span>
-                <span class="rule-item">Round to nearest integer</span>
-                <span class="rule-item">FR-201 → FR-204</span>
+                <span class="rule-item">Cohort key: code_departement × grand_secteur_d_activite</span>
+                <span class="rule-item">Field: effectifs_salaries_brut (not CVS)</span>
+                <span class="rule-item">Latest period: max(annee) then max(trimestre)</span>
+                <span class="rule-item">NAF → grand secteur mapping table required</span>
+                <span class="rule-item">Auto-assign residual only if 1 unresolved target remains</span>
+                <span class="rule-item">Multi-target cohorts → skip, no auto-assign</span>
+                <span class="rule-item">Negative residual → reject, log exception</span>
+                <span class="rule-item">FR-201 → FR-210</span>
               </div>
             </div>
           </div>
         </div>
-        <div class="output-card" style="--conf-color: var(--conf5)">
+        <div class="output-card" style="--conf-color: var(--conf4)">
           <div class="output-label">// SF Output</div>
           <div class="conf-badge">
             <div class="conf-dot">
-              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span class="empty"></span>
             </div>
-            Confidence 5
+            Confidence 4–5
           </div>
           <div class="output-row">
-            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">urssaf_annual_ema</span></div>
-            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">API Entreprise / GIP-MDS</span></div>
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">urssaf_open_data_reconstruction</span></div>
+            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">Urssaf open data + SIRENE</span></div>
           </div>
         </div>
       </div>
@@ -760,7 +773,7 @@
                 <span class="rule-item">LLM must not invent a number</span>
                 <span class="rule-item">Requires: explicit numeric + entity-level + date + evidence span</span>
                 <span class="rule-item">Latest annual accounts only</span>
-                <span class="rule-item">FR-301 → FR-305</span>
+                <span class="rule-item">FR-301 → FR-307</span>
               </div>
             </div>
           </div>
@@ -802,10 +815,9 @@
             <div>
               <div class="stage-section-title">Formulas (priority)</div>
               <div class="source-list">
-                <span class="source-item">A — Tranche midpoint (SIRENE tranche_effectif_salarie)</span>
-                <span class="source-item">B — Payroll ÷ avg salary by NAF</span>
-                <span class="source-item">C — Revenue ÷ avg revenue by NAF</span>
-                <span class="source-item">D — Reconcile B &amp; C if deviation within tolerance</span>
+                <span class="source-item">A — Tranche midpoint (SIRENE tranche_effectifs_etablissement)</span>
+                <span class="source-item">B — Payroll ÷ avg salary by NAF (Insee BTS)</span>
+                <span class="source-item">C — Revenue ÷ avg revenue by NAF (Insee Ésane)</span>
               </div>
             </div>
             <div>
@@ -815,7 +827,8 @@
                 <span class="rule-item">Payroll preferred over revenue</span>
                 <span class="rule-item">Benchmarks must be versioned</span>
                 <span class="rule-item">Outlier → reject, log no-result</span>
-                <span class="rule-item">FR-501 → FR-507</span>
+                <span class="rule-item">Tranche 53 (10 000+) → reserve terminal fallback, continue</span>
+                <span class="rule-item">FR-501 → FR-510</span>
               </div>
             </div>
           </div>
@@ -829,7 +842,7 @@
             Confidence 2–3
           </div>
           <div class="output-row">
-            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">tranche_midpoint | payroll_formula | combined_formula</span></div>
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">tranche_midpoint | payroll_formula | revenue_formula</span></div>
             <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">SIRENE / Financial formula</span></div>
           </div>
         </div>
@@ -883,8 +896,62 @@
             Confidence 1
           </div>
           <div class="output-row">
-            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">coresignal_fallback</span></div>
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">coresignal</span></div>
             <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">CoreSignal</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="between-stages">
+      <div class="waterfall-arrow">
+        <div class="waterfall-arrow-line"></div>
+        <div class="waterfall-arrow-label">NO RESULT → continue</div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Stage 6 — SIRENE 10 000+ Terminal Fallback -->
+    <div class="stage-wrapper">
+      <div class="stage-row">
+        <div class="stage-card" style="--stage-color: var(--conf1)">
+          <div class="stage-header">
+            <span class="stage-num">STAGE 06</span>
+            <span class="stage-name">SIRENE 10 000+ Terminal Fallback</span>
+          </div>
+          <div class="stage-body">
+            <div>
+              <div class="stage-section-title">Trigger condition</div>
+              <div class="rule-list">
+                <span class="rule-item">tranche_effectifs_etablissement = 53 was flagged in Stage 4</span>
+                <span class="rule-item">All previous stages (01–05) failed to produce a publishable result</span>
+                <span class="rule-item">terminal_fallback_flag = true was set; value reserved as 10 000</span>
+              </div>
+            </div>
+            <div>
+              <div class="stage-section-title">Rules</div>
+              <div class="rule-list">
+                <span class="rule-item">Must not be published immediately at Stage 4</span>
+                <span class="rule-item">Must not override any stronger result from later stages</span>
+                <span class="rule-item">Published only as last resort when no other stage resolves</span>
+                <span class="rule-item">FR-508 → FR-510, FR-706 → FR-707</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="output-card" style="--conf-color: var(--conf1)">
+          <div class="output-label">// SF Output</div>
+          <div class="conf-badge">
+            <div class="conf-dot">
+              <span></span><span class="empty"></span><span class="empty"></span><span class="empty"></span><span class="empty"></span>
+            </div>
+            Confidence 1
+          </div>
+          <div class="output-row">
+            <div class="output-field"><span class="output-field-key">Effectif</span><span class="output-field-val">10000</span></div>
+            <div class="output-field"><span class="output-field-key">Method</span><span class="output-field-val">sirene_10000_plus_terminal_fallback</span></div>
+            <div class="output-field"><span class="output-field-key">Source</span><span class="output-field-val">SIRENE</span></div>
           </div>
         </div>
       </div>
@@ -922,11 +989,11 @@
   <div class="legend-section">
     <div class="section-title">Confidence Scale</div>
     <div class="legend-grid">
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf5)"></span><span class="legend-score" style="color:var(--conf5)">5</span> Exact official / URSSAF EMA</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf4)"></span><span class="legend-score" style="color:var(--conf4)">4</span> LLM document extraction</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf5)"></span><span class="legend-score" style="color:var(--conf5)">5</span> Exact official source or URSSAF reconstruction (single target)</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf4)"></span><span class="legend-score" style="color:var(--conf4)">4</span> LLM document extraction / URSSAF multi-target</div>
       <div class="legend-item"><span class="legend-swatch" style="background:var(--conf3)"></span><span class="legend-score" style="color:var(--conf3)">3</span> Strong structured estimate</div>
       <div class="legend-item"><span class="legend-swatch" style="background:var(--conf2)"></span><span class="legend-score" style="color:var(--conf2)">2</span> SIRENE tranche / range formula</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf1)"></span><span class="legend-score" style="color:var(--conf1)">1</span> CoreSignal fallback</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--conf1)"></span><span class="legend-score" style="color:var(--conf1)">1</span> CoreSignal fallback / SIRENE 10 000+ terminal fallback</div>
     </div>
   </div>
 
